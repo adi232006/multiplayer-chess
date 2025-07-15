@@ -1,0 +1,24 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Multiplayer Chess - Room Based</title>
+  <link rel="stylesheet" href="https://unpkg.com/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css">
+  <style>
+    body { font-family: sans-serif; text-align: center; padding: 20px; }
+    #board { width: 400px; margin: 20px auto; }
+    #room { margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <h2>Multiplayer Chess - Join/Create Room</h2>
+  <input type="text" id="roomId" placeholder="Enter Room ID" />
+  <button onclick="joinRoom()">Join Room</button>
+  <div id="room"></div>
+  <div id="board"></div>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.13.4/chess.min.js"></script>
+  <script src="https://unpkg.com/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
