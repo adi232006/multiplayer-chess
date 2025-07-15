@@ -7,19 +7,18 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIO(server);
 
-// Serve files from "public" folder
 app.use(express.static(path.join(__dirname, "public")));
 
-const rooms = {}; // Tracks players in each room
+const rooms = {};
 
 io.on("connection", (socket) => {
   console.log("🟢 New client connected");
 
   socket.on("joinRoom", (roomId) => {
-    console.log(`User joined room: ${roomId}`);
     socket.join(roomId);
+    console.log(`User joined room: ${roomId}`);
+    socket.roomId = roomId;
 
-    // Create new room or join existing one
     if (!rooms[roomId]) {
       rooms[roomId] = [socket.id];
       socket.emit("startGame", "white");
@@ -29,27 +28,28 @@ io.on("connection", (socket) => {
     } else {
       socket.emit("roomFull");
     }
+  });
 
-    // When a player moves
-    socket.on("move", (data) => {
-      socket.to(roomId).emit("opponentMove", data.move);
-    });
+  socket.on("move", (data) => {
+    const roomId = socket.roomId;
+    if (roomId) {
+      socket.to(roomId).emit("opponentMove", data);
+    }
+  });
 
-    // Handle disconnection
-    socket.on("disconnect", () => {
-      console.log("🔴 Client disconnected");
-      if (rooms[roomId]) {
-        rooms[roomId] = rooms[roomId].filter((id) => id !== socket.id);
-        if (rooms[roomId].length === 0) {
-          delete rooms[roomId];
-        }
+  socket.on("disconnect", () => {
+    const roomId = socket.roomId;
+    console.log("🔴 Client disconnected");
+    if (roomId && rooms[roomId]) {
+      rooms[roomId] = rooms[roomId].filter((id) => id !== socket.id);
+      if (rooms[roomId].length === 0) {
+        delete rooms[roomId];
       }
-    });
+    }
   });
 });
 
-// Start the server
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-  console.log(`✅ Server is running on port ${PORT}`);
+  console.log(`✅ Server running on port ${PORT}`);
 });
