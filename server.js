@@ -1,39 +1,55 @@
-
 const express = require("express");
+const http = require("http");
+const socketIO = require("socket.io");
+const path = require("path");
+
 const app = express();
-const http = require("http").createServer(app);
-const io = require("socket.io")(http);
+const server = http.createServer(app);
+const io = socketIO(server);
 
-app.use(express.static("public"));
+// Serve files from "public" folder
+app.use(express.static(path.join(__dirname, "public")));
 
-let rooms = {};
+const rooms = {}; // Tracks players in each room
 
 io.on("connection", (socket) => {
+  console.log("🟢 New client connected");
+
   socket.on("joinRoom", (roomId) => {
-    let room = rooms[roomId] || [];
-    if (room.length >= 2) return;
+    console.log(`User joined room: ${roomId}`);
     socket.join(roomId);
-    room.push(socket);
-    rooms[roomId] = room;
 
-    let color = room.length === 1 ? "white" : "black";
-    socket.emit("startGame", color);
-
-    if (room.length === 2) {
-      console.log(`Room ${roomId} is full`);
+    // Create new room or join existing one
+    if (!rooms[roomId]) {
+      rooms[roomId] = [socket.id];
+      socket.emit("startGame", "white");
+    } else if (rooms[roomId].length === 1) {
+      rooms[roomId].push(socket.id);
+      socket.emit("startGame", "black");
+    } else {
+      socket.emit("roomFull");
     }
 
+    // When a player moves
     socket.on("move", (data) => {
       socket.to(roomId).emit("opponentMove", data.move);
     });
 
+    // Handle disconnection
     socket.on("disconnect", () => {
-      rooms[roomId] = rooms[roomId].filter(s => s !== socket);
+      console.log("🔴 Client disconnected");
+      if (rooms[roomId]) {
+        rooms[roomId] = rooms[roomId].filter((id) => id !== socket.id);
+        if (rooms[roomId].length === 0) {
+          delete rooms[roomId];
+        }
+      }
     });
   });
 });
 
+// Start the server
 const PORT = process.env.PORT || 3000;
-http.listen(PORT, () => {
-  console.log("Server running on port", PORT);
+server.listen(PORT, () => {
+  console.log(`✅ Server is running on port ${PORT}`);
 });
